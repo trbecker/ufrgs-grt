@@ -15,7 +15,11 @@ module Matrix	( mkZeros
 				, foldCells
 				, zipMatrix
 				, toList
+				, toLatexTabular
+				, printLatexTabular
 				) where
+
+import Data.List
 
 -- Use mkMatrix instead.
 data Matrix a = Matrix	{ matrix :: [[a]]
@@ -89,3 +93,13 @@ toList m = let
 		c <- cs
 		return $ (ms !! l) !! c
 
+toLatexTabular :: Show a => Matrix a -> [String]
+toLatexTabular m = 
+	header : (map ((++ " \\\\") . intersperse ' ' . intersperse '&' . map (head . show)) $ matrix m) ++ [footer]
+	where
+		colDef = take (mColumns m) $ repeat 'r'
+		header = "\\left[\\begin{tabular}{" ++ colDef ++ "}"
+		footer = "\\end{tabular}\\right]"
+
+printLatexTabular :: Show a => Matrix a -> IO ()
+printLatexTabular = mapM_ putStrLn . toLatexTabular
