@@ -115,14 +115,7 @@ mMult p q = if mColumns p /= mLines q
 			n = mColumns q - 1
 
 toList :: Matrix a -> [a]
-toList m = let
-	ms = matrix m
-	cs = [0..(mColumns m) - 1]
-	ls = [0..(mLines m) - 1]
-	in do
-		l <- ls
-		c <- cs
-		return $ (ms !! l) !! c
+toList m = concat $ matrix m
 
 tr vs = ((concat . intersperse " & " . map show) vs) ++ " \\\\"
 

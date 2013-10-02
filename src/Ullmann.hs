@@ -4,6 +4,10 @@ module Ullmann	( module Data.Graph
 				, selectColumn
 				, isomorphisms
 				, homomorphisms
+				, enumHomomorphisms
+				, transformCandidate
+				, homs
+				, isos
 				) where
 
 import Control.Monad
@@ -15,17 +19,19 @@ import Matrix
 zeros n = take n $ repeat 0
 
 bruteForceIsomorphism :: Graph g => g -> g -> [Matrix Int]
-bruteForceIsomorphism = enumHomomorphisms injectiveCondition checkMapping
+bruteForceIsomorphism = enumHomomorphisms injectiveCondition (checkMapping validityCondition)
 -- The ullmann algorithm requires an additional prunning condition that is not yet implemented
 isomorphisms :: Graph g => g -> g -> [Matrix Int]
 isomorphisms = bruteForceIsomorphism
 
 bruteForceHomomorphisms :: Graph g => g -> g -> [Matrix Int]
-bruteForceHomomorphisms = enumHomomorphisms (const True) checkMapping
+bruteForceHomomorphisms = enumHomomorphisms (const True) (checkMapping validityCondition)
 -- Reserved to add further prunning conditions.
 homomorphisms :: Graph g => g -> g -> [Matrix Int]
 homomorphisms = bruteForceHomomorphisms
 
+homs c = enumHomomorphisms (const True) (checkMapping c)
+isos c = enumHomomorphisms injectiveCondition (checkMapping c)
 
 -- This can be prettier, maybe...
 buildMatrix :: Graph g => g -> g -> Matrix Int
@@ -70,13 +76,19 @@ enumHomomorphisms finalCondition validityCondition alpha beta = let
 	mb = adjacencyMatrix beta
 	in filter (validityCondition ma mb) $ enumCandidates finalCondition alpha beta
 
-checkMapping :: Matrix Int -> Matrix Int -> Matrix Int-> Bool
-checkMapping ma mb mk = let 
-	mc = mMult mk . mTranspose . mMult mk $ mb
-	in not . any (\(a, c) -> c > 0 && not (a == 1)) . toList $ zipMatrix ma mc
+transformCandidate :: Matrix Int -> Matrix Int -> Matrix Int
+transformCandidate mk mb = mMult mk . mTranspose . mMult mk $ mb
+
+-- According to the article forall i,j . (a = 1) => (c = 1)
+validityCondition a c = not (a == 1) || (c == 1)
+
+checkMapping :: (Int -> Int -> Bool) -> Matrix Int -> Matrix Int -> Matrix Int-> Bool
+checkMapping cond ma mb mk = let 
+	mc = transformCandidate mk mb
+	in not . all (uncurry cond) $ zip (toList ma) (toList mc)
 
 surjectiveCondition :: Matrix Int -> Bool
-surjectiveCondition = not . any (\x -> not . any (==1) $ x) . matrix
+surjectiveCondition = not . any (\x -> not $ any (==1) x) . matrix
 
 injectiveCondition :: Matrix Int -> Bool
 injectiveCondition = not . any (\c -> sum c > 1) . matrix . mTranspose
