@@ -2,19 +2,36 @@ module Ullmann	( module Data.Graph
 				, module Matrix
 				, buildMatrix
 				, selectColumn
-				, iterateColumns
-				, bruteForceIsomorphism
+				, isomorphisms
+				, homomorphisms
 				) where
 
+import Control.Monad
 import Data.Maybe
 import Data.Graph
+import Data.List
 import Matrix
 
-ullmann = undefined
+zeros n = take n $ repeat 0
 
+bruteForceIsomorphism :: Graph g => g -> g -> [Matrix Int]
+bruteForceIsomorphism = enumHomomorphisms injectiveCondition checkMapping
+-- The ullmann algorithm requires an additional prunning condition that is not yet implemented
+isomorphisms :: Graph g => g -> g -> [Matrix Int]
+isomorphisms = bruteForceIsomorphism
+
+bruteForceHomomorphisms :: Graph g => g -> g -> [Matrix Int]
+bruteForceHomomorphisms = enumHomomorphisms (const True) checkMapping
+-- Reserved to add further prunning conditions.
+homomorphisms :: Graph g => g -> g -> [Matrix Int]
+homomorphisms = bruteForceHomomorphisms
+
+
+-- This can be prettier, maybe...
 buildMatrix :: Graph g => g -> g -> Matrix Int
-buildMatrix match target = foldNodes (\mat m -> foldNodes (compareAndSet m) mat target) (mkZeros lenMatch lenTarget) match
+buildMatrix match target = foldNodes (\mat m -> foldNodes (compareAndSet m) mat target) baseMatrix match
 	where
+		baseMatrix = mkMatrix (take lenMatch $ repeat $ zeros lenTarget) (nodeKeys target) (nodeKeys match)
 		lenMatch = length $ nodeKeys match
 		lenTarget = length $ nodeKeys target
 		compareAndSet m matrix t = if degree m <= degree t then mSetCell 1 (nodeId t) (nodeId m) matrix else matrix
@@ -22,33 +39,44 @@ buildMatrix match target = foldNodes (\mat m -> foldNodes (compareAndSet m) mat 
 selectColumn :: Int -> Int -> Matrix Int -> Matrix Int
 selectColumn col depth m = mSetLine depth m $ zeros col ++ [mGetCell depth col m] ++ zeros ((mColumns m) - col - 1)
 
-iterateColumns :: Int -> Matrix Int -> [Matrix Int]
-iterateColumns depth m = filterValid $ map (\c -> selectColumn c depth m) [0..(mColumns m ) - 1]
-	where
-		isValid m = not $ foldl (\b v -> b && (v == 0)) True $ (matrix m) !! depth
-		filterValid = filter isValid
+nextDepth :: Int -> Matrix Int -> [Matrix Int]
+nextDepth d m = do
+	c <- [0..(mColumns m) - 1]
+	return $ selectColumn c d m
 
--- I have a problem naming things. My six cats are called Cat, Cat, Cat, Cat, Cat and Cat; 
--- Just for fun, I should call one of them Hound.
-bruteForceIsomorphism :: Graph g => g -> g -> [Matrix Int]
-bruteForceIsomorphism match target = filterRepeated $ filterNothing $ map (\m -> if compare a (mMult m $ mTranspose $ mMult m $ adjacencyMatrix target)
-		then Just m
-		else Nothing) $ iterate
-	where
-		mat = buildMatrix match target
-		a = adjacencyMatrix match
-		compare a b = foldCells (\v (a, b) -> v && (a /= 1 || b == 1)) True $ zipMatrix a b
-		iterate = clearRepeatedColumns $ iterateDepth (mLines mat - 1) [mat]
-		countNonzeros vec = foldl (\t v -> if v >= 1 then t + 1 else t) 0 vec
-		clearRepeatedColumns mats = filter (\m -> foldColumns (\v cs -> v && (countNonzeros cs <= 1)) True m) mats
-		iterateDepth _ [] = []
-		iterateDepth 0 ms = asdf 0 ms
-		iterateDepth d ms = iterateDepth (d-1) $ asdf d ms
-		asdf d ms = foldl (\ms m -> iterateColumns d m ++ ms) [] ms
-		filterNothing ms = foldl (\ms x -> if x == Nothing then ms else (fromJust x):ms) [] ms
-		filterRepeated ms = foldl (\ms m -> if not $ m `inList` ms then m:ms else ms) [] ms
+nextDepthFilter :: (Matrix Int -> Bool) -> Int -> Matrix Int -> [Matrix Int]
+nextDepthFilter f d = filter f . nextDepth d
 
-inList :: Eq a => a -> [a] -> Bool
-v `inList` xs = any (\x -> x == v) xs
+nextDepthL d = concat . map (nextDepth d)
 
-zeros n = take n $ repeat 0
+nextDepthLFilter f d = concat . map (nextDepthFilter f d)
+
+iter pruner m = foldM (flip (nextDepthFilter pruner)) m [0..(mLines m) - 1]
+
+bfEnum pruninigCondition finalCondition = filter finalCondition . iter pruninigCondition
+
+enumCandidates :: Graph g => (Matrix Int -> Bool) -> g -> g -> [Matrix Int]
+enumCandidates finalCondition alpha = 
+	bfEnum surjectiveCondition finalCondition . buildMatrix alpha
+
+enumHomomorphisms :: Graph g => 
+								(Matrix Int -> Bool) -> 
+								(Matrix Int -> Matrix Int -> Matrix Int -> Bool) ->
+								g ->
+								g ->
+								[Matrix Int]
+enumHomomorphisms finalCondition validityCondition alpha beta = let
+	ma = adjacencyMatrix alpha
+	mb = adjacencyMatrix beta
+	in filter (validityCondition ma mb) $ enumCandidates finalCondition alpha beta
+
+checkMapping :: Matrix Int -> Matrix Int -> Matrix Int-> Bool
+checkMapping ma mb mk = let 
+	mc = mMult mk . mTranspose . mMult mk $ mb
+	in not . any (\(a, c) -> c > 0 && not (a == 1)) . toList $ zipMatrix ma mc
+
+surjectiveCondition :: Matrix Int -> Bool
+surjectiveCondition = not . any (\x -> not . any (==1) $ x) . matrix
+
+injectiveCondition :: Matrix Int -> Bool
+injectiveCondition = not . any (\c -> sum c > 1) . matrix . mTranspose
