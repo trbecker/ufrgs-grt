@@ -1,10 +1,12 @@
 module Dev	( module Ullmann
 			, module UllmannTest
+			, module Control.Monad
 			) where
 
 import Ullmann
 import UllmannTest
 import Control.Monad
+import Data.List
 
 extractNodeId (x:xs)
 	| x == 1 = 0
@@ -31,9 +33,39 @@ nextDepth d m = do
 	c <- [0..(mColumns m) - 1]
 	return $ selectColumn c d m
 
-mFoldM :: (Monad m) => (a -> b -> m a) -> a -> [b] -> m a
-mFoldM _ a [] = return a
-mFoldM f a (x:xs) = f a x >>= \fax -> mFoldM f fax xs
+nextDepthFilter :: (Matrix Int -> Bool) -> Int -> Matrix Int -> [Matrix Int]
+nextDepthFilter f d = filter f . nextDepth d
 
-iterate :: Matrix Int -> [Matrix Int]
-iterate m = mFoldM (flip nextDepth) m [0..(mLines m) - 1]
+nextDepthL d = concat . map (nextDepth d)
+
+nextDepthLFilter f d = concat . map (nextDepthFilter f d)
+
+iter pruner m = foldM (flip (nextDepthFilter pruner)) m [0..(mLines m) - 1]
+
+bfEnum pruninigCondition finalCondition = filter finalCondition . iter pruninigCondition
+
+enumCandidates :: Graph g => (Matrix Int -> Bool) -> g -> g -> [Matrix Int]
+enumCandidates finalCondition alpha = 
+	bfEnum surjectiveCondition finalCondition . buildMatrix alpha
+
+enumHomomorphisms :: Graph g => 
+								(Matrix Int -> Bool) -> 
+								(Matrix Int -> Matrix Int -> Matrix Int -> Bool) ->
+								g ->
+								g ->
+								[Matrix Int]
+enumHomomorphisms finalCondition validityCondition alpha beta = let
+	ma = adjacencyMatrix alpha
+	mb = adjacencyMatrix beta
+	in filter (validityCondition ma mb) $ enumCandidates finalCondition alpha beta
+
+checkMapping :: Matrix Int -> Matrix Int -> Matrix Int-> Bool
+checkMapping ma mb mk = let 
+	mc = mMult mk . mTranspose . mMult mk $ mb
+	in not . any (\(a, c) -> c > 0 && not (a == 1)) . toList $ zipMatrix ma mc
+
+surjectiveCondition :: Matrix Int -> Bool
+surjectiveCondition = not . any (\x -> not . any (==1) $ x) . matrix
+
+injectiveCondition :: Matrix Int -> Bool
+injectiveCondition = not . any (\c -> sum c > 1) . matrix . mTranspose

@@ -98,9 +98,10 @@ degree :: Node a -> Int
 degree (Node _ ls _) = length ls
 
 adjacencyMatrix :: Graph g => g -> Matrix Int
-adjacencyMatrix g = mkMatrix $ foldEdges setFromEdge matrix g
+adjacencyMatrix g = mkMatrix (foldEdges setFromEdge matrix g) ks ks
 	where
-		n = length $ nodeKeys g
+		ks = nodeKeys g
+		n = length $ ks
 		matrix = take n $ repeat $ take n $ repeat 0
 		extractPoints (Edge _ ps _) = ps
 		setInLine c l = let (hs, ts) = splitAt c l in hs ++ [1] ++ tail ts
