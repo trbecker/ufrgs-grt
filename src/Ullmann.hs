@@ -4,6 +4,8 @@ module Ullmann	( module Data.Graph
 				, selectColumn
 				, isomorphisms
 				, homomorphisms
+				, homs
+				, transform
 				) where
 
 import Control.Monad
@@ -15,13 +17,15 @@ import Matrix
 zeros n = take n $ repeat 0
 
 bruteForceIsomorphism :: Graph g => g -> g -> [Matrix Int]
-bruteForceIsomorphism = enumHomomorphisms injectiveCondition checkMapping
+bruteForceIsomorphism = enumHomomorphisms injectiveCondition (checkMapping ullmannCondition)
 -- The ullmann algorithm requires an additional prunning condition that is not yet implemented
 isomorphisms :: Graph g => g -> g -> [Matrix Int]
 isomorphisms = bruteForceIsomorphism
 
+homs checker = enumHomomorphisms (const True) (checkMapping checker)
+
 bruteForceHomomorphisms :: Graph g => g -> g -> [Matrix Int]
-bruteForceHomomorphisms = enumHomomorphisms (const True) checkMapping
+bruteForceHomomorphisms = enumHomomorphisms (const True) (checkMapping ullmannCondition)
 -- Reserved to add further prunning conditions.
 homomorphisms :: Graph g => g -> g -> [Matrix Int]
 homomorphisms = bruteForceHomomorphisms
@@ -70,10 +74,14 @@ enumHomomorphisms finalCondition validityCondition alpha beta = let
 	mb = adjacencyMatrix beta
 	in filter (validityCondition ma mb) $ enumCandidates finalCondition alpha beta
 
-checkMapping :: Matrix Int -> Matrix Int -> Matrix Int-> Bool
-checkMapping ma mb mk = let 
-	mc = mMult mk . mTranspose . mMult mk $ mb
-	in not . any (\(a, c) -> c > 0 && not (a == 1)) . toList $ zipMatrix ma mc
+ullmannCondition a c = (not (a == 1)) || (c == 1)
+
+checkMapping :: (Int -> Int -> Bool) -> Matrix Int -> Matrix Int -> Matrix Int-> Bool
+checkMapping cond ma mb mk = let 
+	mc = transform mb mk
+	in all (uncurry cond) . toList $ zipMatrix ma mc
+
+transform mb mk = mMult mk . mTranspose . mMult mk $ mb
 
 surjectiveCondition :: Matrix Int -> Bool
 surjectiveCondition = not . any (\x -> not . any (==1) $ x) . matrix
