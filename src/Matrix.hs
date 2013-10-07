@@ -21,6 +21,9 @@ module Matrix	( mkZeros
 				, mLineLabels
 				, printMat
 				, printMats_
+				, mkZerosWithLabels
+				, printMatsSurround
+				, tabulars
 				) where
 
 import Data.List
@@ -41,6 +44,16 @@ mkZeros l c = Matrix 	{ matrix = m
 						, mColumnLabels = take c [0..]
 						, mLineLabels = take l [0..] }
 	where m = take l $ repeat $ take c $ repeat 0
+
+mkZerosWithLabels :: Int -> Int -> [Int] -> [Int] -> Matrix Int
+mkZerosWithLabels l c ll cl = Matrix 	{ matrix = m
+										, mLines = l
+										, mColumns = c
+										, mColumnLabels = cl
+										, mLineLabels = ll
+										}
+	where m = take l $ repeat $ take c $ repeat 0
+
 
 mkMatrix :: [[a]] -> [Int] -> [Int] -> Matrix a
 mkMatrix m cl ll = if foldl (\b ls -> b && (length ls == prime)) True $ tail m
@@ -135,14 +148,23 @@ toLatexTabular :: Show a => Matrix a -> [String]
 toLatexTabular m = ("\\left[" ++ tabularDecl) : columnHeaders : (addLineHeaders tabularBulk m) ++ ["\\end{tabular}\\right]"]
 	where
 		addLineHeaders f m = map (\(ln, ls) -> (header ln ++ " & ") ++ ls) $ zip (mLineLabels m) $ f m
-		tabularDecl = "\\begin{tabular}{" ++ (take ((mColumns m) + 1) $ repeat 'r') ++ "}"
-		columnHeaders = " & " ++ ((concat . intersperse " & " . map header) (mColumnLabels m)) ++ " \\\\"
+		tabularDecl = "\\begin{tabular}{r!{\\color{gray}\\vrule}" ++ (take ((mColumns m)) $ repeat 'r') ++ "}"
+		columnHeaders = " & " ++ ((concat . intersperse " & " . map header) (mColumnLabels m)) ++ " \\\\ \\arrayrulecolor{gray}\\hline"
 
 printLatexTabular :: Show a => Matrix a -> IO ()
 printLatexTabular = mapM_ putStrLn . toLatexTabular
+
+printLatexTabularSurround :: Show a => String -> String -> Matrix a -> IO ()
+printLatexTabularSurround s e m = putStrLn s >> printLatexTabular m >> putStrLn e
+
+tabulars :: Show a => String -> String -> [Matrix a] -> IO ()
+tabulars s e = mapM_ (\m -> printLatexTabularSurround s e m)
 
 printMat :: Show a => Matrix a -> IO ()
 printMat = mapM_ (putStrLn . concat . intersperse " " . map show) . matrix
 
 printMats_ :: Show a => [Matrix a] -> IO ()
 printMats_ = mapM_ (\m -> putStrLn "" >> printMat m)
+
+printMatsSurround :: Show a => String -> String -> [Matrix a] -> IO ()
+printMatsSurround start end = mapM_ (\m -> putStrLn start >> printMat m >> putStrLn end)

@@ -1,11 +1,16 @@
 module Ullmann	( module Data.Graph
 				, module Matrix
 				, buildMatrix
-				, selectColumn
+				--, selectColumn
+				, enumHomomorphisms
 				, isomorphisms
+				, isomorphismsDirected
 				, homomorphisms
 				, homs
 				, transform
+				, iter
+				, surjectiveCondition
+				, nextDepthFilter
 				) where
 
 import Control.Monad
@@ -16,20 +21,21 @@ import Matrix
 
 zeros n = take n $ repeat 0
 
-bruteForceIsomorphism :: Graph g => g -> g -> [Matrix Int]
+bruteForceIsomorphism :: Graph g => (g -> Matrix Int) -> g -> g -> [Matrix Int]
 bruteForceIsomorphism = enumHomomorphisms injectiveCondition (checkMapping ullmannCondition)
--- The ullmann algorithm requires an additional prunning condition that is not yet implemented
 isomorphisms :: Graph g => g -> g -> [Matrix Int]
-isomorphisms = bruteForceIsomorphism
+isomorphisms = bruteForceIsomorphism adjacencyMatrix
 
 homs checker = enumHomomorphisms (const True) (checkMapping checker)
 
-bruteForceHomomorphisms :: Graph g => g -> g -> [Matrix Int]
+bruteForceHomomorphisms :: Graph g => (g -> Matrix Int) -> g -> g -> [Matrix Int]
 bruteForceHomomorphisms = enumHomomorphisms (const True) (checkMapping ullmannCondition)
 -- Reserved to add further prunning conditions.
 homomorphisms :: Graph g => g -> g -> [Matrix Int]
-homomorphisms = bruteForceHomomorphisms
+homomorphisms = bruteForceHomomorphisms adjacencyMatrix
 
+isomorphismsDirected :: Graph g => g -> g -> [Matrix Int]
+isomorphismsDirected = bruteForceIsomorphism adjacencyMatrixDirected
 
 -- This can be prettier, maybe...
 buildMatrix :: Graph g => g -> g -> Matrix Int
@@ -66,12 +72,13 @@ enumCandidates finalCondition alpha =
 enumHomomorphisms :: Graph g => 
 								(Matrix Int -> Bool) -> 
 								(Matrix Int -> Matrix Int -> Matrix Int -> Bool) ->
+								(g -> Matrix Int) ->
 								g ->
 								g ->
 								[Matrix Int]
-enumHomomorphisms finalCondition validityCondition alpha beta = let
-	ma = adjacencyMatrix alpha
-	mb = adjacencyMatrix beta
+enumHomomorphisms finalCondition validityCondition adjacency alpha beta = let
+	ma = adjacency alpha
+	mb = adjacency beta
 	in filter (validityCondition ma mb) $ enumCandidates finalCondition alpha beta
 
 ullmannCondition a c = (not (a == 1)) || (c == 1)

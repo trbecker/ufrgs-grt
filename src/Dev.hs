@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 module Dev	( module Ullmann
 			, module UllmannTest
 			, module Control.Monad
@@ -27,3 +28,9 @@ isomorphMap m = let
 		i <- is
 		let l = ms !! i
 		return (i, extractNodeId l)
+
+typedIsomorphism :: (Graph g, Typed (NodePayload g), Typed (EdgePayload g)) =>
+	(Node (NodePayload g) -> Node (NodePayload g) -> Bool) ->
+	(Edge (EdgePayload g) -> Edge (EdgePayload g) -> Bool) -> 
+	g -> g -> [Matrix Int]
+typedIsomorphism fn fe = isomorphisms

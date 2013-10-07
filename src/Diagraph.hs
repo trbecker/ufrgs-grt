@@ -20,6 +20,15 @@ instance Show MNodePayload where
 instance Show MEdgePayload where
 	show EmptyEdge = "(unlabeled)"
 
+instance Typed MNodePayload where
+	type Type MNodePayload = Int
+	getType _ = 0
+
+instance Typed MEdgePayload where
+	type Type MEdgePayload = Int
+	getType _ = 0
+
+
 instance Graph Diagraph where
 	type NodePayload Diagraph = MNodePayload
 	type EdgePayload Diagraph = MEdgePayload

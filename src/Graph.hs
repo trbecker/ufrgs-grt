@@ -97,15 +97,24 @@ instance Labeled p => Labeled (Edge p) where
 degree :: Node a -> Int
 degree (Node _ ls _) = length ls
 
+connectedNodes (Edge _ np _) = np
+
+setUndirected e = let (n1, n2) = connectedNodes e in mSetCell 1 n1 n2 . mSetCell 1 n2 n1
+
 adjacencyMatrix :: Graph g => g -> Matrix Int
-adjacencyMatrix g = mkMatrix (foldEdges setFromEdge matrix g) ks ks
-	where
-		ks = nodeKeys g
-		n = length $ ks
-		matrix = take n $ repeat $ take n $ repeat 0
-		extractPoints (Edge _ ps _) = ps
-		setInLine c l = let (hs, ts) = splitAt c l in hs ++ [1] ++ tail ts
-		set l c m = let (hs, ts) = splitAt l m in hs ++ [setInLine c (head ts)] ++ tail ts
-		setFromEdge m e = let (l, c) = extractPoints e in set l c $ set c l m
+adjacencyMatrix = adjMatrix (flip setUndirected)
+
+adjMatrix :: Graph g => (Matrix Int -> Edge (EdgePayload g) -> Matrix Int) -> g -> Matrix Int
+adjMatrix f g = let
+	ks = nodeKeys g
+	n = length ks
+	in foldEdges f (mkZerosWithLabels n n ks ks) g
+
+setDirected e = let (s, t) = connectedNodes e in mSetCell 1 t s
+
+adjacencyMatrixDirected :: Graph g => g -> Matrix Int
+adjacencyMatrixDirected = adjMatrix (flip setDirected)
+
+
 
 nodeId (Node _ _ i) = i
