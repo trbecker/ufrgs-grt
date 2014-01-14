@@ -30,10 +30,13 @@ delEdge e@(Edge id _ _) (Digraph nm em)
     | otherwise = Nothing
 
 nodes :: Digraph a b -> [Node a]
-nodes = undefined
+nodes (Digraph nm _) = toList nm
 
 edges :: Digraph a b -> [Edge b]
-edges = undefined
+edges (Digraph _ em) = toList em
 
 conn :: Edge b -> Digraph a b -> Maybe (Node a, Node a)
-conn = undefined
+conn e (Digraph nm em@(Edge id np))
+    | id `member` em = Just $ np
+    | otherwise = Nothing
+    
