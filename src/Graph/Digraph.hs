@@ -10,12 +10,14 @@ data Node a = Node Int a deriving (Show,Eq,Read)
 data Digraph a b = Digraph (IntMap (Node a)) (IntMap (Edge b))
 
 addNode :: Node a -> Digraph a b -> Maybe (Digraph a b)
-addNode n@(Node id a) g@(Digraph nm em)
+addNode n@(Node id _) g@(Digraph nm em)
     | id `member` nm = Nothing
     | otherwise = Just $ Digraph (insert id n nm) em
 
 addEdge :: Edge b -> Digraph a b -> Maybe (Digraph a b)
-addEdge = undefined
+addEdge e@(Edge id _ _) g@(Digraph nm em)
+    | id `member` em = Nothing
+    | otherwise = Just $ Digraph nm (insert id e em)
 
 delNode :: Node a -> Digraph a b -> Maybe (Digraph a b)
 delNode = undefined
