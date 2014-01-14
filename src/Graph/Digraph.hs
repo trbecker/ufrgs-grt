@@ -8,3 +8,24 @@ data Edge a = Edge Int (Int, Int) a deriving (Show,Eq,Read)
 data Node a = Node Int a deriving (Show,Eq,Read)
 
 data Digraph a b = Digraph (IntMap (Node a)) (IntMap (Edge b))
+
+addNode :: Node a -> Digraph a b -> Maybe (Digraph a b)
+addNode = undefined
+
+addEdge :: Edge b -> Digraph a b -> Maybe (Digraph a b)
+addEdge = undefined
+
+delNode :: Node a -> Digraph a b -> Maybe (Digraph a b)
+delNode = undefined
+
+delEdge :: Edge b -> Digraph a b -> Maybe (Digraph a b)
+delEdge = undefined
+
+nodes :: Digraph a b -> [Node a]
+nodes = undefined
+
+edges :: Digraph a b -> [Edge b]
+edges = undefined
+
+conn :: Edge b -> Digraph a b -> Maybe (Node a, Node a)
+conn = undefined
