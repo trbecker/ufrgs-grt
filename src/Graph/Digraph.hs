@@ -8,7 +8,6 @@ module Graph.Digraph
     , delEdge
     , nodes
     , edges
-    , conn
     ) where
 
 import Data.IntMap
