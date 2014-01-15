@@ -9,6 +9,7 @@
 \title{Architecture\\GRT}
 
 \begin{document}
+\maketitle
 \chapter{DPO graph rewriting approach}
 Given a rule $L \overset{l}{\leftarrowtail} K \overset{r}{\rightarrowtail} R$ and a graph $G$, the DPO approach to graph rewriting is to commute the following diagram
 
@@ -53,7 +54,83 @@ These are all structure preserving. Two conditions impede the transformation to 
 \section{Graph}
 A graph is represented by two sets $V$ of vertices and $E$ of edges. Each element must have an numerical identity. Edges must contain also a pair of node identites that are the source and target of an edge.
 
-A morphism between graphs is represented by two lists of pairs: node and edge identities. The first element is the source of the morphism and the second element is the target of the morphism. one of them can be $\bot$ (\texttt{Nothing}), meaning that the element is created (when in the source) or deleted (when in the target). For the DPO approach, the source of each pair must be unique, except for $\bot$. This morphism allows to describe a span $L \overset{l}{\leftarrowtail} K \overset{r}{\rightarrowtail} R$ as follows.
+\section{Morphisms}
+A morphism between graphs is represented by two lists of pairs: node and edge identities. The first element is the source of the morphism and the second element is the target of the morphism. one of them can be $\bot$ (\texttt{Nothing}), meaning that the element is created (when in the source) or deleted (when in the target). For the DPO approach, the source of each pair must be unique, except for $\bot$. 
+
+\subsection{Decomposing morphisms}
+\label{ssec:actions}
+Morphisms can be decomposed in simple actions of adding, removing and keeping nodes and edges. These actions are encoded in the pairs of a morphism, as such:
+
+\begin{tabular}{lll}
+\textbf{Pair} & \textbf{Action on nodes} & \textbf{Action on edges} \\
+$(s, s)$ & \texttt{keepNode n g} & \texttt{keepEdge e g} \\
+$(s, \bot)$ & \texttt{delNode n g} & \texttt{delEdge e g} \\
+$(\bot, s)$ & \texttt{addNode n g} & \texttt{addEdge e g} \\
+$(s, t)$ & reserved for future use & reserved for future use \\
+$(\bot, \bot)$ & \texttt{id g} & \texttt{id g} \\
+\end{tabular}
+
+\subsection{Application Order}
+\label{ssec:order}
+The operations must be applied in the following order to conform to the DPO approach:
+\begin{enumerate}
+	\item \texttt{removeEdge}
+	\item \texttt{removeNode}
+	\item \texttt{addNode}
+	\item \texttt{addEdge}
+	\item \texttt{keepNode}, \texttt{keepEdge}
+\end{enumerate}
+
+This, and the error condition and corrections below, gurantee the two application conditions of the DPO approach. The reasoning behind the claim is discussed after presenting the error conditions and corrections.
+
+\subsection{Errors in morphism application}
+Error conditions and correction (whenever possible) for such morphisms are:
+\begin{itemize}
+	\item when keeping an element, the element kept must exist; if it doesn't, an error must be returned. 
+	\item In \texttt{addNode}, the node must not have the same identity of an existing node, but the identity can be remapped to a new name. This remapping will be discussed in the future.
+	\item In \texttt{addEdge}, the two nodes it points to must exist in the graph; if not, it must return an error.
+	\item In \texttt{removeEdge}, the edge must exist. Otherwise, an error must be returned.
+	\item In \texttt{removeNode}, the node removed must not be pointed by any edge in the graph. If so, the actions must return an error.
+\end{itemize}
+
+\subsection{Inverting morphisms}
+Inverted morphisms in Graph are morphism in which source and target are flipped. To invert a morphism, the action must flip each pair of edges and nodes in a given morphism.
+
+\subsection{Remapping identities}
+An operation of remapping the identities (names) of the elements of a graph is useful. A generic remap must receive a morphism, and a list of pairs (of nodes and edges) that indicate the way in which the remapping occurs; the first element is the original name, and the second is the new name.
+
+When remapping a node identity, one must be careful to remap it's identity also in the edges. Edge name remapping can be by simply changing it's name. In both cases, the target must not exist in the graph prior to the remapping.
+
+\subsection{DPO paradigm encoded in the actions}
+One way to encode the DPO approach, using the actions described above, is to apply the following algorithm.
+
+\begin{enumerate}
+	\item Remap the target identities of the creation pairs $(\bot, t)$ to a set of identites that doesn't exist in the graph.
+	\item Order the pairs as described in the Subsection \ref{ssec:order}.
+	\item Convert each pair to the appropriate action, as described in Subsection \ref{ssec:actions}.
+	\item \texttt{fold} the actions over the graph.
+\end{enumerate}
+
+In the end, either a graph or an error is returned. The error may or may not tell at which step the transformation failed.
+
+\subsection{Action signatures}
+\begin{verbatim}
+keepEdge   :: (Monad m) => Edge b -> Digraph a b -> m (Digraph a b)
+keepNode   :: (Monad m) => Node a -> Digraph a b -> m (Digraph a b)
+addNode    :: (Monad m) => Node a -> Digraph a b -> m (Digraph a b)
+addEdge    :: (Monad m) => Edge b -> Digraph a b -> m (Digraph a b)
+removeEdge :: (Monad m) => Edge b -> Digraph a b -> m (Digraph a b)
+removeNode :: (Monad m) => Node a -> Digraph a b -> m (Digraph a b)
+\end{verbatim}
+
+The reasoning for using a generic monad instead of \texttt{Maybe} is to allow for future modifications without having to modify the code completely. Actually, using only \texttt{return} to indicate a successful transformation, and \texttt{fail} with a descriptive message is sufficient for the actions described above.
+
+\subsection{Morphism composition}
+
+
+\section{Rules}
+This morphism allows to describe a span $L \overset{l}{\leftarrowtail} K \overset{r}{\rightarrowtail} R$ as follows.
+
 \begin{itemize}
 	\item $L$ are all sources $s$ that are mapped to $\bot$ ($s \mid s \mapsto \bot$), plus all that are maintained ($s \mid s \mapsto s$).
 	\item $R$ are all targets $t$ that are mapped from $\bot$ ($t \mid \bot \mapsto t$), plus all that are maintained ($t \mid t \mapsto t$).
@@ -61,4 +138,5 @@ A morphism between graphs is represented by two lists of pairs: node and edge id
 	\item $l$ are all pairs that the target is $\bot$ ($(s, \bot) \mid s \mapsto \bot$).
 	\item $r$ are all pairs which the source if $\bot$ ($(\bot, t) \mid \bot \mapsto t$).
 \end{itemize}
+
 \end{document}
