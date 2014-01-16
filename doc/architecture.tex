@@ -126,7 +126,14 @@ removeNode :: (Monad m) => Node a -> Digraph a b -> m (Digraph a b)
 The reasoning for using a generic monad instead of \texttt{Maybe} is to allow for future modifications without having to modify the code completely. Actually, using only \texttt{return} to indicate a successful transformation, and \texttt{fail} with a descriptive message is sufficient for the actions described above.
 
 \subsection{Morphism composition}
-
+To compose two morphisms $m$ and $m'$ in a morphism $m''$, the following rules are applied:
+\begin{itemize}
+	\item if $(s, \bot) \in m$, then the pair is kept as is in $m''$.
+	\item if $(\bot, t) \in m'$ then the pair is kept as is in $m''$.
+	\item if $(s, t) \in m$ and $(s', t') \in m'$, both are colapsed in the pair $(s, t')$ in $m''$
+	\item for all pairs of $m$ that are not collapsed by the previous rule, they are added to $m''$ as is.
+	\item for all pairs $(s, t)$ of $m'$ that are not collapsed, a pair $(\bot, t)$ is added.
+\end{itemize}
 
 \section{Rules}
 This morphism allows to describe a span $L \overset{l}{\leftarrowtail} K \overset{r}{\rightarrowtail} R$ as follows.
