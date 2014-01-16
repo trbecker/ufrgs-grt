@@ -2,23 +2,32 @@ module Graph.Digraph
     ( Edge
     , Node
     , Digraph
+    , node
+    , edge
+    , empty
     , addNode
     , addEdge
     , removeNode
     , removeEdge
+    , keepNode
+    , keepEdge
     , nodes
     , edges
     ) where
 
 import Data.IntMap
 
+
 -- Edge idE (idSrc, idTgt) payload
 data Edge a = Edge Int (Int, Int) a deriving (Show,Eq,Read)
 -- Node idN payload
 data Node a = Node Int a deriving (Show,Eq,Read)
 
+node = Node
+
+edge = Edge
+
 data Digraph a b = Digraph (IntMap (Node a)) (IntMap (Edge b)) deriving (Show)
-    
 empty :: Digraph a b
 empty = Digraph (Data.IntMap.empty) (Data.IntMap.empty)
 
@@ -53,6 +62,12 @@ removeEdge e@(Edge id _ _) g@(Digraph nm em) =
     if id `member` em 
         then return $ Digraph nm (delete id em)
         else fail $ "removeEdge: edge " ++ show id ++ " not in digraph"
+
+keepNode :: (Monad m) => Node a -> Digraph a b -> m (Digraph a b)
+keepNode = undefined
+
+keepEdge :: (Monad m) => Edge b -> Digraph a b -> m (Digraph a b)
+keepEdge = undefined
 
 nodes :: Digraph a b -> [(Node a)]
 nodes (Digraph nm _) = Prelude.map snd $ toList nm
