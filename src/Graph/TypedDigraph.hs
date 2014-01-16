@@ -28,16 +28,25 @@ edgeAction (Just e, Just e') = if e /= e'
 							else keepEdge e
 edgeAction (Nothing, Nothing) = return
 
+addAction (Nothing, Just t) = True
+addAction _ = False
+
+removeAction (Just s, Nothing) = True
+removeAction _ = False
+
+keepAction (Just s, Just t) = True
+keepAction _ = False
+
 actionSet :: (Monad m, Eq a, Eq b) => Morphism a b -> [Digraph a b -> m (Digraph a b)]
 actionSet (Morphism na ea) = let
 	nodeActions f = map nodeAction . filter f
 	edgeActions f = map edgeAction . filter f
-	knSet = nodeActions (\(Just s, Just t) -> True) na
-	keSet = edgeActions (\(Just s, Just t) -> True) ea
-	anSet = nodeActions (\(Nothing, Just t) -> True) na
-	aeSet = edgeActions (\(Nothing, Just t) -> True) ea
-	dnSet = nodeActions (\(Just s, Nothing) -> True) na
-	deSet = edgeActions (\(Just s, Nothing) -> True) ea
+	knSet = nodeActions keepAction na
+	keSet = edgeActions keepAction ea
+	anSet = nodeActions addAction na
+	aeSet = edgeActions addAction ea
+	dnSet = nodeActions removeAction na
+	deSet = edgeActions removeAction ea
 	in deSet ++ dnSet ++ anSet ++ aeSet ++ knSet ++ keSet
 
 
