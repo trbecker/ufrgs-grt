@@ -35,19 +35,24 @@ addEdge e@(Edge id (s, t) _) g@(Digraph nm em)
     | s `member` nm && t `member` nm =
         return $ Digraph nm (insert id e em)
     | otherwise =
-        fail $ "addEdge: edge has nodes not found in digraph"
+        fail $ "addEdge: edge points to nodes not found in digraph"
 
 removeNode :: (Monad m) => Node a -> Digraph a b -> m (Digraph a b)
-removeNode n@(Node id _) g@(Digraph nm em) =
-    if id `member` nm 
-        then return $ Digraph (delete id nm) em
-        else fail $ "removeNode: node " ++ show id ++ " not in digraph"
+removeNode n@(Node id _) g@(Digraph nm em)
+    | id `notMember` nm =
+        fail $ "removeNode: node " ++ show id ++ " not in digraph"
+    | Data.IntMap.fold 
+        (\(Edge eid (s, t) _) acc -> acc || s == id || t == id) 
+        False em =
+        fail $ "removeNode: node " ++ show id ++ " has some edge pointing to it"
+    | otherwise =
+        return $ Digraph (delete id nm) em
 
 removeEdge :: (Monad m) => Edge b -> Digraph a b -> m (Digraph a b)
 removeEdge e@(Edge id _ _) g@(Digraph nm em) =
     if id `member` em 
         then return $ Digraph nm (delete id em)
-        else fail $ "removeEdge: edge " ++ show id ++ " not in Digraph"
+        else fail $ "removeEdge: edge " ++ show id ++ " not in digraph"
 
 nodes :: Digraph a b -> [(Node a)]
 nodes (Digraph nm _) = Prelude.map snd $ toList nm
