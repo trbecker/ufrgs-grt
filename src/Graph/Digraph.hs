@@ -1,6 +1,7 @@
 module Graph.Digraph 
-    ( Edge
-    , Node
+    ( Edge (..)
+    , Node (..)
+    , empty
     , Digraph
     , addNode
     , addEdge
