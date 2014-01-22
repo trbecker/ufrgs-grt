@@ -64,14 +64,16 @@ removeEdge e@(Edge id _ _) g@(Digraph nm em) =
         else fail $ "removeEdge: edge " ++ show id ++ " not in digraph"
 
 keepNode :: (Monad m) => Node a -> Digraph a b -> m (Digraph a b)
-keepNode (Node nid _) g@(Digraph ns es) = if nid `IM.member` ns
-							then return g
-							else fail $ "keepNode: node " ++ show nid ++ " doesn't exist"
+keepNode (Node nid _) g@(Digraph ns es) = 
+    if nid `IM.member` ns
+        then return g
+        else fail $ "keepNode: node " ++ show nid ++ " doesn't exist"
 
 keepEdge :: (Monad m) => Edge b -> Digraph a b -> m (Digraph a b)
-keepEdge (Edge eid _ _) g@(Digraph ns es) = if eid `IM.member` es
-							then return g
-							else fail $ "keepEdge: edge " ++ show eid ++ " doesn't exist"
+keepEdge (Edge eid _ _) g@(Digraph ns es) = 
+    if eid `IM.member` es
+        then return g
+        else fail $ "keepEdge: edge " ++ show eid ++ " doesn't exist"
 
 nodes :: Digraph a b -> [(Node a)]
 nodes (Digraph nm _) = map snd $ IM.toList nm
