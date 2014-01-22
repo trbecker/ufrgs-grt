@@ -1,10 +1,8 @@
 module Graph.Digraph 
     ( Edge (..)
     , Node (..)
-    , empty
     , Digraph
-    , node
-    , edge
+    , Morphism (..)
     , empty
     , addNode
     , addEdge
@@ -14,7 +12,10 @@ module Graph.Digraph
     , keepEdge
     , nodes
     , edges
+    , applyMorphism
     ) where
+
+import Control.Monad
 
 import Data.IntMap (IntMap)
 import qualified Data.IntMap as IM
@@ -24,10 +25,6 @@ import qualified Data.IntMap as IM
 data Edge a = Edge Int (Int, Int) a deriving (Show,Eq,Read)
 -- Node idN payload
 data Node a = Node Int a deriving (Show,Eq,Read)
-
-node = Node
-
-edge = Edge
 
 data Digraph a b = Digraph (IntMap (Node a)) (IntMap (Edge b)) deriving (Show)
 
@@ -82,3 +79,49 @@ nodes (Digraph nm _) = map snd $ IM.toList nm
 edges :: Digraph a b -> [(Edge b)]
 edges (Digraph _ em) = map snd $ IM.toList em
 
+
+type NodeAction a = (Maybe (Node a), Maybe (Node a))
+type EdgeAction a = (Maybe (Edge a), Maybe (Edge a))
+
+data Morphism a b = Morphism [NodeAction a] [EdgeAction b]
+
+nodeAction :: (Monad m, Eq a) => NodeAction a -> (Digraph a b -> m (Digraph a b))
+nodeAction (Nothing, Just n) = addNode n
+nodeAction (Just n, Nothing) = removeNode n 
+nodeAction (Just n, Just n') = if n /= n' 
+							then const $ fail "Node transformation is unhandled"
+							else keepNode n
+nodeAction (Nothing, Nothing) = return
+
+edgeAction :: (Monad m, Eq b) => EdgeAction b -> (Digraph a b -> m (Digraph a b))
+edgeAction (Nothing, Just e) = addEdge e
+edgeAction (Just e, Nothing) = removeEdge e
+edgeAction (Just e, Just e') = if e /= e'
+							then const $ fail "Edge transformation is unhandled"
+							else keepEdge e
+edgeAction (Nothing, Nothing) = return
+
+addAction (Nothing, Just t) = True
+addAction _ = False
+
+removeAction (Just s, Nothing) = True
+removeAction _ = False
+
+keepAction (Just s, Just t) = True
+keepAction _ = False
+
+actionSet :: (Monad m, Eq a, Eq b) => Morphism a b -> [Digraph a b -> m (Digraph a b)]
+actionSet (Morphism na ea) = let
+	nodeActions f = map nodeAction . filter f
+	edgeActions f = map edgeAction . filter f
+	knSet = nodeActions keepAction na
+	keSet = edgeActions keepAction ea
+	anSet = nodeActions addAction na
+	aeSet = edgeActions addAction ea
+	dnSet = nodeActions removeAction na
+	deSet = edgeActions removeAction ea
+	in deSet ++ dnSet ++ anSet ++ aeSet ++ knSet ++ keSet
+
+
+applyMorphism :: (Monad m, Eq a, Eq b) => Morphism a b -> Digraph a b -> m (Digraph a b)
+applyMorphism m g = foldM (\g f -> f g) g $ actionSet m
