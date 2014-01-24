@@ -3,6 +3,8 @@ module Graph.Digraph
     , Node (..)
     , Digraph
     , Morphism (..)
+    , Action (..)
+    , ActionList (..)
     , empty
     , addNode
     , addEdge
@@ -13,6 +15,9 @@ module Graph.Digraph
     , nodes
     , edges
     , applyMorphism
+    , applyActions
+    , nodeMorphisms
+    , edgeMorphisms
     ) where
 
 import Control.Monad
@@ -81,13 +86,15 @@ nodes (Digraph nm _) = map snd $ IM.toList nm
 edges :: Digraph a b -> [(Edge b)]
 edges (Digraph _ em) = map snd $ IM.toList em
 
+type Action c a     = (Maybe (c a), Maybe (c a))
+type ActionList c a = [Action c a]
 
-type NodeAction a = (Maybe (Node a), Maybe (Node a))
-type EdgeAction a = (Maybe (Edge a), Maybe (Edge a))
+data Morphism a b = Morphism (ActionList Node a) (ActionList Edge b) deriving (Show)
 
-data Morphism a b = Morphism [NodeAction a] [EdgeAction b]
+nodeMorphisms (Morphism nm _ ) = nm
+edgeMorphisms (Morphism _  em) = em
 
-nodeAction :: (Monad m, Eq a) => NodeAction a -> (Digraph a b -> m (Digraph a b))
+nodeAction :: (Monad m, Eq a) => Action Node a -> Digraph a b -> m (Digraph a b)
 nodeAction (Nothing, Just n) = addNode n
 nodeAction (Just n, Nothing) = removeNode n 
 nodeAction (Just n, Just n') = if n /= n' 
@@ -95,7 +102,7 @@ nodeAction (Just n, Just n') = if n /= n'
 							else keepNode n
 nodeAction (Nothing, Nothing) = return
 
-edgeAction :: (Monad m, Eq b) => EdgeAction b -> (Digraph a b -> m (Digraph a b))
+edgeAction :: (Monad m, Eq b) => Action Edge b -> Digraph a b -> m (Digraph a b)
 edgeAction (Nothing, Just e) = addEdge e
 edgeAction (Just e, Nothing) = removeEdge e
 edgeAction (Just e, Just e') = if e /= e'
@@ -124,6 +131,8 @@ actionSet (Morphism na ea) = let
 	deSet = edgeActions removeAction ea
 	in deSet ++ dnSet ++ anSet ++ aeSet ++ knSet ++ keSet
 
+applyActions :: Monad m => a -> [a -> m a] -> m a
+applyActions = foldM (\g f -> f g)
 
 applyMorphism :: (Monad m, Eq a, Eq b) => Morphism a b -> Digraph a b -> m (Digraph a b)
-applyMorphism m g = foldM (\g f -> f g) g $ actionSet m
+applyMorphism m g = applyActions g $ actionSet m
