@@ -5,6 +5,8 @@ import Graph.TypedDigraph
 import qualified Data.IntMap as IM
 import qualified Data.List as L
 
+type Mapping = (Int, Int)
+
 findMatches :: TypedDigraph a b -> TypedDigraph a b -> [Morphism a b]
 findMatches l g = undefined
 	
@@ -16,11 +18,12 @@ findMatches l g = undefined
 matchEdge :: TypedDigraph a b -> TypedDigraph a b -> Int -> Morphism a b -> [Morphism a b]
 matchEdge = undefined
 
-{- | edgeConstraints are functions that receive a Graph 'g' together with the
-   corresponding edge id 'gid' and return True if 'gid' satisfies the given
-   condition.
+{- | and edgeConstraint is a function that receives a Graph 'g' together with
+the corresponding edge id 'gid' and tests if 'gid' satisfies the given
+condition.  If so, it returns a list of two mappings with the corresponding
+src's and target nodes 
 -}
-type EdgeConstraint a b = Int -> TypedDigraph a b -> Maybe [(Int, Int)]
+type EdgeConstraint a b = Int -> TypedDigraph a b -> Maybe [Mapping]
 
 {- | nodeConstraints are functions that receive a Graph 'g' together with the
    corresponding node id 'gid' and return True if 'gid' satisfies the given
@@ -32,12 +35,11 @@ type EdgeCSP a b = [EdgeConstraint a b]
 
 {- | takes an existing list of mapped nodes 'p' (a pair of node id's, the
 first corresponding to the 'l' graph and the second to the 'g' one), an Edge Id
-'lid' and it's typedDigraph 'l' and returns a tuple where the first element is
-the list of mapped node id's with the new mappings added and the second is an
-edgeConstraint.  addEdgeConstraint checks if the given Edge has some node as
-it's source/target already in 'p'. If so, it returns a constraint that forces
-any matching edge to have the corresponding node as it's source/target.
-Otherwise it only restricts the source/target's type.
+'lid' and it's typedDigraph 'l' and returns an EdgeConstraint.
+addEdgeConstraint checks if the given Edge has some node as it's source/target
+already in 'p'. If so, it returns a constraint that forces any matching edge to
+have the corresponding node as it's source/target.  Otherwise it only restricts
+the source/target's type.
 -}
 addEdgeConstraint
 	:: [(Int, Int)] 
@@ -57,7 +59,7 @@ addEdgeConstraint p lid l@(TypedDigraph (Digraph lnm lem) _) = let
 	checkTar = case matchedTar of 
 		Just (ln, gn) -> (\x -> x == gn)
 		otherwise	  -> (\x -> True)
-	in (\gid g@(TypedDigraph (Digraph gnm gem) _) -> let
+	constraint = (\gid g@(TypedDigraph (Digraph gnm gem) _) -> let
 		gEdge@(Just (Edge _ (gsrc, gtar) _)) = IM.lookup gid gem
 		gsrcType = getNodeType gsrc g
 		gtarType = getNodeType gtar g
@@ -70,4 +72,5 @@ addEdgeConstraint p lid l@(TypedDigraph (Digraph lnm lem) _) = let
 		    	Just $ (lsrc, gsrc):(ltar, gtar):p
 			else
 				Nothing)
+	in contraint
 
