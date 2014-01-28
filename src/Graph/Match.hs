@@ -20,15 +20,15 @@ matchEdge = undefined
    corresponding edge id 'gid' and return True if 'gid' satisfies the given
    condition.
 -}
-type EdgeConstraint = Int -> TypedDigraph a b -> Bool
+type EdgeConstraint a b = Int -> TypedDigraph a b -> Maybe [(Int, Int)]
 
 {- | nodeConstraints are functions that receive a Graph 'g' together with the
    corresponding node id 'gid' and return True if 'gid' satisfies the given
    condition.
 -}
-type NodeConstraint = Int -> TypedDigraph a b -> Bool
+type NodeConstraint a b = Int -> TypedDigraph a b -> Maybe [(Int, Int)]
 
-type EdgeCSP = [EdgeConstraint]
+type EdgeCSP a b = [EdgeConstraint a b]
 
 {- | takes an existing list of mapped nodes 'p' (a pair of node id's, the
 first corresponding to the 'l' graph and the second to the 'g' one), an Edge Id
@@ -43,9 +43,9 @@ addEdgeConstraint
 	:: [(Int, Int)] 
 	-> Int 
 	-> TypedDigraph a b
-	-> ([Int], EdgeConstraint)
-addEdgeConstraint p lid l@(TypedDigraph (Digraph nm em) _)	 = let
-	lEdge@(Just (Edge _ (lsrc, ltar) _)) = IM.lookup lid em
+	-> EdgeConstraint a b
+addEdgeConstraint p lid l@(TypedDigraph (Digraph lnm lem) _) = let
+	lEdge@(Just (Edge _ (lsrc, ltar) _)) = IM.lookup lid lem
 	lsrcType = getNodeType lsrc l
 	ltarType = getNodeType ltar l
 	-- checks if src/tar nodes were already mapped
@@ -57,19 +57,17 @@ addEdgeConstraint p lid l@(TypedDigraph (Digraph nm em) _)	 = let
 	checkTar = case matchedTar of 
 		Just (ln, gn) -> (\x -> x == gn)
 		otherwise	  -> (\x -> True)
-	constraint = (\gid g -> let
-		gEdge@(Just (Edge _ (gsrc, gtar) _)) = IM.lookup gid g
+	in (\gid g@(TypedDigraph (Digraph gnm gem) _) -> let
+		gEdge@(Just (Edge _ (gsrc, gtar) _)) = IM.lookup gid gem
 		gsrcType = getNodeType gsrc g
 		gtarType = getNodeType gtar g
-		in ((lsrcType == gsrcType)
-			&& (ltarType == gtarType)
-			&& checkSrc
-			&& checkTar))
-	in (lsrc:ltar:p, constraint)
-				
-			
-sameType :: NodeConstraint
-sameType l lid g gid = let
-	lType = getNodeType l lid
-	gType = getNodeType g gid
-	in lType == gType
+		in
+			if	(lsrcType == gsrcType
+		    	&& (ltarType == gtarType)
+		    	&& checkSrc gsrc
+		    	&& checkTar gtar)
+			then
+		    	Just $ (lsrc, gsrc):(ltar, gtar):p
+			else
+				Nothing)
+
