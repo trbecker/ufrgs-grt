@@ -1,7 +1,7 @@
 module Graph.TypedDigraph where
 
 import Control.Monad
-
+import qualified Data.IntMap as IM
 import Graph.Digraph
 
 type TGraph a b = Digraph a b
