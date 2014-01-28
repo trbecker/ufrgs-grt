@@ -1,7 +1,7 @@
 module Graph.Digraph 
 	( Edge (..)
 	, Node (..)
-	, Digraph
+	, Digraph (..)
 	, Morphism (..)
 	, empty
 	, addNode
