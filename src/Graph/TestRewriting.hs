@@ -45,6 +45,8 @@ beta = fromJust $ applyActions empty	[ addNode $ nb0
 										, addEdge $ eb2
 										]
 
+betat = TypedDigraph beta typeGraph
+
 na1 = Node 1 $ typeInfo 1
 na2 = Node 2 $ typeInfo 2
 na3 = Node 3 $ typeInfo 1
@@ -58,6 +60,7 @@ alpha = fromJust $ applyActions empty	[ addNode $ na1
 										, addEdge $ ea2
 										]
 
+alphat = TypedDigraph alpha typeGraph
 
 rule1 = Morphism	[(Just na1, Just na1), (Just na2, Just na2), (Just na3, Nothing)] 
 					[(Just ea1, Nothing), (Just ea2, Just ea2)]

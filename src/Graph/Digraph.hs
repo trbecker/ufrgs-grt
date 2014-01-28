@@ -16,8 +16,11 @@ module Graph.Digraph
     , edges
     , applyMorphism
     , applyActions
+    , actionSet
     , nodeMorphisms
     , edgeMorphisms
+    , nodeId
+    , edgeId
     ) where
 
 import Control.Monad
@@ -28,10 +31,13 @@ import qualified Data.IntMap as IM
 
 -- Edge idE (idSrc, idTgt) payload
 data Edge a = Edge Int (Int, Int) a deriving (Show,Eq,Read)
+edgeId (Edge id _ _) = id
+
 -- Node idN payload
 data Node a = Node Int a deriving (Show,Eq,Read)
+nodeId (Node id _) = id
 
-data Digraph a b = Digraph (IntMap (Node a)) (IntMap (Edge b)) deriving (Show)
+data Digraph a b = Digraph (IntMap (Node a)) (IntMap (Edge b)) deriving (Show,Eq)
 
 empty :: Digraph a b
 empty = Digraph (IM.empty) (IM.empty)
@@ -119,7 +125,7 @@ removeAction _ = False
 keepAction (Just s, Just t) = True
 keepAction _ = False
 
-actionSet :: (Monad m, Eq a, Eq b) => Morphism a b -> [Digraph a b -> m (Digraph a b)]
+--actionSet :: (Monad m, Eq a, Eq b) => Morphism a b -> [Digraph a b -> m (Digraph a b)]
 actionSet (Morphism na ea) = let
 	nodeActions f = map nodeAction . filter f
 	edgeActions f = map edgeAction . filter f
