@@ -3,6 +3,7 @@ module Graph.Match where
 import Graph.Digraph
 import Graph.TypedDigraph
 import qualified Data.IntMap as IM
+import qualified Data.List as L
 
 findMatches :: TypedDigraph a b -> TypedDigraph a b -> [Morphism a b]
 findMatches l g = undefined
@@ -48,10 +49,8 @@ addEdgeConstraint p lid l@(TypedDigraph (Digraph nm em) _)	 = let
 	lsrcType = getNodeType lsrc l
 	ltarType = getNodeType ltar l
 	-- checks if src/tar nodes were already mapped
-	matchedSrc = let
-		x = (\(ln, gn) -> ln == lsrc) `find` p
-	matchedTar = let
-		x = (\(ln, gn) -> ln == lsrc) `find` p 
+	matchedSrc = (\(ln, gn) -> ln == lsrc) `L.find` p
+	matchedTar = (\(ln, gn) -> ln == lsrc) `L.find` p 
 	checkSrc = case matchedSrc of
 		Just (ln, gn) -> (\x -> x == gn)
 		otherwise	  -> (\x -> True)
@@ -66,7 +65,7 @@ addEdgeConstraint p lid l@(TypedDigraph (Digraph nm em) _)	 = let
 			&& (ltarType == gtarType)
 			&& checkSrc
 			&& checkTar))
-	in (lsrc:ltar:nl, constraint)
+	in (lsrc:ltar:p, constraint)
 				
 			
 sameType :: NodeConstraint
@@ -74,8 +73,3 @@ sameType l lid g gid = let
 	lType = getNodeType l lid
 	gType = getNodeType g gid
 	in lType == gType
-
--- rewrite rule graph match
-rewrite :: (Monad m) => Rule a b -> TypedDigraph a b -> Morphism a b -> m TypedDigraph a b
-rewrite = undefined
--- fmap (rewrite rule graph) matches
