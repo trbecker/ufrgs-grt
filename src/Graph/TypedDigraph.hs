@@ -33,4 +33,3 @@ srcType (Edge _ (s, _) _) l =
 tarType :: Edge b -> TypedDigraph a b -> Maybe Int
 tarType (Edge _ (s, _) _) l =
 	nodeType s l
-	

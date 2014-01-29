@@ -12,6 +12,8 @@ module Graph.Digraph
 	, keepEdge
 	, nodes
 	, edges
+	, source
+	, target
 	, applyMorphism
 	) where
 
@@ -81,6 +83,11 @@ nodes (Digraph nm _) = map snd $ IM.toList nm
 edges :: Digraph a b -> [(Edge b)]
 edges (Digraph _ em) = map snd $ IM.toList em
 
+source :: Edge b -> Int
+source (Edge _ (src, _) _) = src
+
+target :: Edge b -> Int
+target (Edge _ (_, tar) _) = tar
 
 type NodeAction a = (Maybe (Node a), Maybe (Node a))
 type EdgeAction a = (Maybe (Edge a), Maybe (Edge a))

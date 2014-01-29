@@ -10,8 +10,8 @@ tg = D.empty
 ln = [D.Node 1 (1, "one"), 
 	  D.Node 2 (1, "two"),
 	  D.Node 3 (2, "three")]
-le = [D.Edge 4 (1, 2) "one -> two",
-	  D.Edge 5 (2, 3) "two -> three"]
+le = [D.Edge 4 (2, 1) "two -> one",
+	  D.Edge 5 (1, 3) "one -> three"]
 
 l1 = foldM (\d n -> D.addNode n d) l ln :: Maybe (D.Digraph (TypeInfo String) String)
 l2 = l1 >>=
@@ -27,7 +27,7 @@ ge = [D.Edge 15 (10, 11) "a -> b",
 	  D.Edge 17 (12, 13) "c -> d"]
 g1 = foldM (\d n -> D.addNode n d) g gn :: Maybe (D.Digraph (TypeInfo String) String)
 g2 = g1 >>=
-	(\l -> foldM (\d e -> D.addEdge e d) g ge) :: Maybe (D.Digraph (TypeInfo String) String)
+	(\g -> foldM (\d e -> D.addEdge e d) g ge) :: Maybe (D.Digraph (TypeInfo String) String)
 
 tdl = case l2 of
 	Just t -> TypedDigraph t tg
@@ -36,6 +36,7 @@ tdg = case g2 of
 	Just t -> TypedDigraph t tg
 	otherwise -> TypedDigraph g tg
 
+mappings = testFunc 4 tdl tdg
 
-aConstraint = addEdgeConstraint [] 4 tdl
-mappings = applyConstraint aConstraint tdg
+--aConstraint = addEdgeConstraint [] 4 tdl
+--mappings = applyConstraint aConstraint tdg
