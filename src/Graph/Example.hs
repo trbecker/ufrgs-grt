@@ -36,7 +36,8 @@ tdg = case g2 of
 	Just t -> TypedDigraph t tg
 	otherwise -> TypedDigraph g tg
 
-mappings = testFunc 4 tdl tdg
+mappings = testFunc 5 tdl tdg
+
 
 --aConstraint = addEdgeConstraint [] 4 tdl
 --mappings = applyConstraint aConstraint tdg
