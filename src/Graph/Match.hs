@@ -1,11 +1,15 @@
-module Graph.Match where
+module Graph.Match
+	( EdgeConstraint (..)
+	, addEdgeConstraint
+	, applyConstraint
+	)
+	where
 
 import Graph.Digraph
 import Graph.TypedDigraph
 import qualified Data.IntMap as IM
 import qualified Data.List as L
 
-type Mapping = (Int, Int)
 
 findMatches :: TypedDigraph a b -> TypedDigraph a b -> [Morphism a b]
 findMatches l g = undefined
@@ -18,12 +22,14 @@ findMatches l g = undefined
 matchEdge :: TypedDigraph a b -> TypedDigraph a b -> Int -> Morphism a b -> [Morphism a b]
 matchEdge = undefined
 
+type Mapping = [(Int, Int)]
+
 {- | and edgeConstraint is a function that receives a Graph 'g' together with
 the corresponding edge id 'gid' and tests if 'gid' satisfies the given
 condition.  If so, it returns a list of two mappings with the corresponding
 src's and target nodes 
 -}
-type EdgeConstraint a b = Int -> TypedDigraph a b -> Maybe [Mapping]
+type EdgeConstraint a b = Int -> TypedDigraph a b -> Maybe Mapping
 
 {- | nodeConstraints are functions that receive a Graph 'g' together with the
    corresponding node id 'gid' and return True if 'gid' satisfies the given
@@ -32,6 +38,7 @@ type EdgeConstraint a b = Int -> TypedDigraph a b -> Maybe [Mapping]
 type NodeConstraint a b = Int -> TypedDigraph a b -> Maybe [(Int, Int)]
 
 type EdgeCSP a b = [EdgeConstraint a b]
+
 
 {- | takes an existing list of mapped nodes 'p' (a pair of node id's, the
 first corresponding to the 'l' graph and the second to the 'g' one), an Edge Id
@@ -48,21 +55,21 @@ addEdgeConstraint
 	-> EdgeConstraint a b
 addEdgeConstraint p lid l@(TypedDigraph (Digraph lnm lem) _) = let
 	lEdge@(Just (Edge _ (lsrc, ltar) _)) = IM.lookup lid lem
-	lsrcType = getNodeType lsrc l
-	ltarType = getNodeType ltar l
+	lsrcType = srcType lEdge l
+	ltarType = tarType lEdge l
 	-- checks if src/tar nodes were already mapped
 	matchedSrc = (\(ln, gn) -> ln == lsrc) `L.find` p
-	matchedTar = (\(ln, gn) -> ln == lsrc) `L.find` p 
+	matchedTar = (\(ln, gn) -> ln == ltar) `L.find` p 
 	checkSrc = case matchedSrc of
-		Just (ln, gn) -> (\x -> x == gn)
+		Just (ln, gn) -> (\x -> x == gn) :: Int -> Bool
 		otherwise	  -> (\x -> True)
 	checkTar = case matchedTar of 
-		Just (ln, gn) -> (\x -> x == gn)
+		Just (ln, gn) -> (\x -> x == gn) :: Int -> Bool
 		otherwise	  -> (\x -> True)
 	constraint = (\gid g@(TypedDigraph (Digraph gnm gem) _) -> let
 		gEdge@(Just (Edge _ (gsrc, gtar) _)) = IM.lookup gid gem
-		gsrcType = getNodeType gsrc g
-		gtarType = getNodeType gtar g
+		gsrcType = srcType gEdge g
+		gtarType = tarType gEdge g
 		in
 			if	(lsrcType == gsrcType
 		    	&& (ltarType == gtarType)
@@ -72,5 +79,16 @@ addEdgeConstraint p lid l@(TypedDigraph (Digraph lnm lem) _) = let
 		    	Just $ (lsrc, gsrc):(ltar, gtar):p
 			else
 				Nothing)
-	in contraint
+	in constraint
 
+{- given an EdgeConstraint 'ec' and a TypedDigraph 'tg', returns a list of 
+possible new mappings that satisfy constraint
+-}
+applyConstraint
+	:: 
+	EdgeConstraint a b
+	-> TypedDigraph a b
+	-> [Mapping]
+applyConstraint ec tg@(TypedDigraph (Digraph _ em) _) =
+	let mappings = IM.mapMaybe (\e@(Edge eid _ _) -> ec eid tg) em 
+	in IM.foldr (\m acc -> m:acc) [] mappings 	
