@@ -6,6 +6,7 @@ module Graph.Match
 	)
 	where
 
+import Data.Maybe
 import Graph.Digraph
 import Graph.TypedDigraph
 import qualified Data.IntMap as IM
@@ -58,8 +59,10 @@ mapped.  If so, 'ge' is a matching Edge. If 'le's source doesn't occur in 'p',
 any 'ge' will satisfy this condition
 -}
 srcIDCond :: Condition a b
-srcIDCond p l le@(Edge _ (lsrc, _) _) g ge@(Edge _ (gsrc, _) _) =
-	let matched = (\(ln, gn) -> ln == lsrc) `L.find` p
+srcIDCond p l le g ge =
+	let lsrc = source le
+	    gsrc = source ge
+	    matched = (\(ln, gn) -> ln == lsrc) `L.find` p
 	in case matched of	
 		Just (ln, gn) -> gsrc == gn
 		Nothing -> True
@@ -70,8 +73,10 @@ mapped.  If so, 'ge' is a matching Edge. If 'le's target doesn't occur in 'p',
 any 'ge' will satisfy this condition
 -}
 tarIDCond :: Condition a b
-tarIDCond p l le@(Edge _ (_, ltar) _) g ge@(Edge _ (_, gtar) _) =
-	let matched = (\(ln, gn) -> ln == ltar) `L.find` p
+tarIDCond p l le g ge =
+	let ltar = target le
+	    gtar = target ge
+            matched = (\(ln, gn) -> ln == ltar) `L.find` p
 	in case matched of	
 		Just (ln, gn) -> gtar == gn
 		Nothing -> True
@@ -105,9 +110,9 @@ applyCond
 	-> Edge b
 	-> TypedDigraph a b
 	-> [Mapping]
-applyCond cl p l le g@(TypedDigraph (Digraph _ gem) _) =
-	let candidates = IM.mapMaybe (\ge -> satisfiesCond cl p l le g ge) gem
-	in IM.foldr (\c acc -> c : acc) [] candidates 
+applyCond cl p l le g@(TypedDigraph dg _) =
+	let candidates = mapMaybe (\ge -> satisfiesCond cl p l le g ge) $ edges dg
+	in foldr (\c acc -> c : acc) [] candidates 
 
 {- | written for test purposes in Example.hs.  -}
 testFunc :: Int -> TypedDigraph a b -> TypedDigraph a b -> Maybe [Mapping]
