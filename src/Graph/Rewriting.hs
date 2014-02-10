@@ -1,6 +1,7 @@
 module Graph.Rewriting where
 
 import Data.Maybe
+import Data.List
 
 import Graph.Digraph
 import Graph.TypedDigraph
@@ -14,25 +15,27 @@ findMatches :: TypedDigraph a b -> TypedDigraph a b -> [Morphism a b]
 findMatches = undefined
 
 -- rewrite rule graph match
---rewrite :: (Monad m) => Rule a b -> TypedDigraph a b -> Morphism a b -> m (TypedDigraph a brewrite rule graph match = applyTypedMorphism (renameElementsByMatch rule match) graph
+--rewrite :: (Monad m) => Rule a b -> TypedDigraph a b -> Morphism a b -> m (TypedDigraph a brewrite rule graph match = applyTypedMorphism (rename rule match) graph
 
 renameNode :: [(Int, Int)] -> Node a -> Node a
 renameNode namemap (Node id x) = Node (fromJust $ lookup id namemap) x
 
 renameEdge nnamemap enamemap (Edge id x y) = Edge (fromJust $ lookup id enamemap) 
-	((fromJust . flip lookup nnamemap) *-> x) y
+	(double (fromJust . flip lookup nnamemap) x) y
 
 -- | Applies f to both elements in a tuple
-(*->) :: (a -> b) -> (a, a) -> (b, b)
-(*->) f = f *** f
+double :: (a -> b) -> (a, a) -> (b, b)
+double f = f *** f
  
-renameElementsByMatch :: (Eq a, Eq b) => Rule a b -> Morphism a b -> Rule a b
-renameElementsByMatch r@(Morphism nr er) m@(Morphism nm em) = Morphism 
-	(map (liftM (renameNode nodeIdMap) *->) $ filter renames nr) 
-	(map (liftM (renameEdge nodeIdMap edgeIdMap) *->) $ filter renames er)
+rename :: (Eq a, Eq b) => Int -> Int -> Rule a b -> Morphism a b -> Rule a b
+rename ns es r@(Morphism nr er) m@(Morphism nm em) = Morphism 
+	(nub $ map (double (liftM (renameNode nodeIdMap))) nr) 
+	(nub $ map (double (liftM (renameEdge nodeIdMap edgeIdMap))) er)
 	where
-		nodeIdMap = map ((nodeId . fromJust) *->) nm
-		edgeIdMap = map ((edgeId . fromJust) *->) em
+		cNodeIdMap = zip (map (nodeId . fromJust . snd) $ filter newNames nr) [ns..]
+		cEdgeIdMap = zip (map (edgeId . fromJust . snd) $ filter newNames er) [es..]
+		nodeIdMap = cNodeIdMap ++ map (double (nodeId . fromJust)) nm
+		edgeIdMap = cEdgeIdMap ++ map (double (edgeId . fromJust)) em
 		newNames, renames :: Eq a => (Maybe a, b) -> Bool
 		newNames = (== Nothing) . fst
 		renames  = (/= Nothing) . fst
