@@ -2,6 +2,7 @@ module Graph.Rewriting where
 
 import Data.Maybe
 import Data.List
+import Data.IntMap (IntMap,keys)
 
 import Graph.Digraph
 import Graph.TypedDigraph
@@ -14,8 +15,14 @@ type Rule a b = Morphism a b
 findMatches :: TypedDigraph a b -> TypedDigraph a b -> [Morphism a b]
 findMatches = undefined
 
--- rewrite rule graph match
---rewrite :: (Monad m) => Rule a b -> TypedDigraph a b -> Morphism a b -> m (TypedDigraph a brewrite rule graph match = applyTypedMorphism (rename rule match) graph
+rewrite :: (Monad m, Eq a, Eq b) => Rule (TypeInfo a) (TypeInfo b) -> TypedDigraph a b -> Morphism (TypeInfo a) (TypeInfo b) -> m (TypedDigraph a b)
+rewrite rule graph match = applyTypedMorphism (rename ns es rule match) graph
+	where
+		keyList :: IntMap a -> [Int]
+		keyList = keys
+		max = maximum . keyList
+		ns = 1 + (max $ nodeMap $ instanceGraph graph)
+		es = 1 + (max $ edgeMap $ instanceGraph graph)
 
 renameNode :: [(Int, Int)] -> Node a -> Node a
 renameNode namemap (Node id x) = Node (fromJust $ lookup id namemap) x

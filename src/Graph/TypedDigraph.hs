@@ -19,3 +19,5 @@ applyTypedMorphism :: (Monad m, Eq a, Eq b) =>
 	m (TypedDigraph a b)
 applyTypedMorphism m (TypedDigraph g t) = liftM (flip TypedDigraph t) $ applyActions g $ actionSet m
 
+instanceGraph (TypedDigraph g t) = g
+typeGraph     (TypedDigraph g t) = t

@@ -14,6 +14,8 @@ module Graph.Digraph
     , keepEdge
     , nodes
     , edges
+    , nodeMap
+    , edgeMap
     , applyMorphism
     , applyActions
     , actionSet
@@ -91,6 +93,9 @@ nodes (Digraph nm _) = map snd $ IM.toList nm
 
 edges :: Digraph a b -> [(Edge b)]
 edges (Digraph _ em) = map snd $ IM.toList em
+
+nodeMap (Digraph ns _ ) = ns
+edgeMap (Digraph _  es) = es
 
 type Action c a     = (Maybe (c a), Maybe (c a))
 type ActionList c a = [Action c a]
